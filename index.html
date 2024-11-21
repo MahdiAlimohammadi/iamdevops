@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevOps Terminal</title>
+  <title>Let's Build, Ship, and Scale Together!</title>
   <style>
     body {
       background-color: #000;
@@ -17,26 +17,40 @@
       flex-direction: column;
     }
 
-    /* Fixed Banner */
+    /* Updated Creative Banner */
     .banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #1e1e1e;
+      color: #ffbb33;
       font-size: 18px;
       font-weight: bold;
-      background: #111;
-      color: #00A67D;
-      padding: 10px 20px;
+      padding: 15px 20px;
       position: fixed;
       top: 0;
       width: 100%;
       z-index: 100;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+      text-align: center;
+    }
+
+    /* Neon Text Effect */
+    .banner span {
+      animation: neon 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes neon {
+      0% { text-shadow: 0 0 5px #ffbb33, 0 0 10px #ffbb33, 0 0 15px #ffbb33, 0 0 20px #ffbb33; }
+      100% { text-shadow: 0 0 10px #ffbb33, 0 0 15px #ffbb33, 0 0 20px #ffbb33, 0 0 25px #ffbb33; }
     }
 
     /* Scrollable Terminal */
     #terminal-container {
-      flex: 1;
-      margin-top: 60px; /* Leave space for the fixed banner */
+      margin-top: 70px; /* Space for the fixed banner */
+      flex: 1; /* Occupies all remaining vertical space */
+      overflow-y: auto; /* Makes content scrollable */
       padding: 20px;
-      overflow-y: auto;
       display: flex;
       flex-direction: column;
     }
@@ -56,7 +70,6 @@
       padding: 10px 20px;
       background: #111;
       box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.5);
-      position: relative;
     }
 
     .prompt {
@@ -71,7 +84,6 @@
       color: #00A67D;
       outline: none;
       flex: 1;
-      position: relative;
     }
 
     a {
@@ -82,36 +94,12 @@
     a:hover {
       text-decoration: underline;
     }
-
-    /* Autocomplete suggestion box inline with the prompt */
-    .autocomplete-suggestions {
-      background-color: #111;
-      border: 1px solid #00A67D;
-      position: absolute;
-      z-index: 200;
-      top: 100%;
-      left: calc(20px + 10ch); /* Adjust for prompt and padding */
-      max-height: 150px;
-      overflow-y: auto;
-      width: 300px; /* Fixed width for better alignment */
-      color: #00A67D;
-    }
-
-    .autocomplete-suggestion {
-      padding: 5px;
-      cursor: pointer;
-    }
-
-    .autocomplete-suggestion:hover {
-      background-color: #00A67D;
-      color: #000;
-    }
   </style>
 </head>
 <body>
-  <!-- Fixed Banner -->
+  <!-- New Creative Banner - Custom Message -->
   <div class="banner" id="banner">
-    Loading your terminal...
+    <span>Welcome to Mahdi's Terminal</span> - Let's Build, Ship, and Scale Together!
   </div>
 
   <!-- Scrollable Terminal -->
@@ -126,32 +114,39 @@
   <div id="input-line">
     <span class="prompt">guest@iamdevops.ir:~$</span>
     <input id="input" type="text" autofocus autocomplete="off">
-    <!-- Autocomplete Suggestions -->
-    <div id="autocomplete" class="autocomplete-suggestions"></div>
   </div>
 
   <script>
-    async function getVisitorInfo() {
+    // Fetch visitor information and update banner (optional)
+    async function updateBanner() {
+      const banner = document.getElementById("banner");
       try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipResponse = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipResponse.json();
         const ip = ipData.ip;
+
+        const locationResponse = await fetch(`https://ipapi.co/${ip}/json/`);
+        const locationData = await locationResponse.json();
+        const city = locationData.city || "Unknown City";
+        const country = locationData.country_name || "Unknown Country";
+
         const currentTime = new Date().toLocaleString();
-        document.getElementById("banner").innerHTML = `IP: ${ip} | Date/Time: ${currentTime}`;
+
+        // Update the banner content with visitor info
+        banner.innerHTML = `<span>🌐 IP: ${ip} | 📍 Location: ${city}, ${country} | 🕒 ${currentTime}</span>`;
       } catch (error) {
-        console.error("Error fetching IP:", error);
-        document.getElementById("banner").innerHTML = `Unable to fetch IP | Date/Time: ${new Date().toLocaleString()}`;
+        console.error("Error fetching visitor information:", error);
+        banner.innerHTML = `<span>Unable to load banner. Please refresh.</span>`;
       }
     }
 
-    getVisitorInfo();
+    // Call the updateBanner function to display visitor info (optional)
+    updateBanner();
 
     const terminal = document.getElementById("terminal");
     const input = document.getElementById("input");
-    const autocompleteDiv = document.getElementById("autocomplete");
 
-    const commands = ["help", "whoami", "skills", "projects", "contact", "clear"];
-    const commandDescriptions = {
+    const commands = {
       help: "Available commands: <b>whoami</b>, <b>skills</b>, <b>projects</b>, <b>contact</b>, <b>clear</b>",
       whoami: "I'm Mahdi Alimohammadi, a DevOps/SRE Engineer and System Administrator.",
       skills: "Skills: CI/CD, Docker, Kubernetes, Linux, HAProxy, Monitoring (Prometheus/Grafana).",
@@ -160,38 +155,10 @@
       clear: ""
     };
 
-    function showSuggestions(suggestions) {
-      autocompleteDiv.innerHTML = '';
-      suggestions.forEach(suggestion => {
-        const suggestionDiv = document.createElement('div');
-        suggestionDiv.classList.add('autocomplete-suggestion');
-        suggestionDiv.textContent = suggestion;
-        suggestionDiv.onclick = function() {
-          input.value = suggestion;
-          autocompleteDiv.innerHTML = '';
-        };
-        autocompleteDiv.appendChild(suggestionDiv);
-      });
-    }
-
-    function autocomplete(inputText) {
-      if (!inputText) {
-        autocompleteDiv.innerHTML = '';
-        return;
-      }
-      const matchedCommands = commands.filter(command => command.startsWith(inputText));
-      showSuggestions(matchedCommands);
-    }
-
-    input.addEventListener("input", function() {
-      const inputText = input.value.trim();
-      autocomplete(inputText);
-    });
-
     input.addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
         const command = input.value.trim();
-        let response = commandDescriptions[command] || "Command not found. Type 'help' for available commands.";
+        let response = commands[command] || "Command not found. Type 'help' for available commands.";
 
         if (command === "clear") {
           terminal.innerHTML = '';
@@ -200,7 +167,6 @@
         }
 
         input.value = "";
-        autocompleteDiv.innerHTML = '';
         terminal.scrollTop = terminal.scrollHeight;
       }
     });
