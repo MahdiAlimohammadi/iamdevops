@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Terminal</title>
+  <style>
+    body {
+      background-color: #000;
+      color: #00A67D;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 16px;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Fixed Banner */
+    .banner {
+      font-size: 18px;
+      font-weight: bold;
+      background: #111;
+      color: #00A67D;
+      padding: 10px 20px;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Scrollable Terminal */
+    #terminal-container {
+      flex: 1;
+      margin-top: 60px; /* Leave space for the fixed banner */
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #terminal {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1; /* Ensures the terminal expands to fill available space */
+      white-space: pre-wrap;
+      overflow-y: auto;
+    }
+
+    /* Input line and prompt */
+    #input-line {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      background: #111;
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .prompt {
+      color: #00A67D;
+      margin-right: 5px;
+      flex-shrink: 0;
+    }
+
+    #input {
+      background: none;
+      border: none;
+      color: #00A67D;
+      outline: none;
+      flex: 1;
+      position: relative;
+    }
+
+    a {
+      color: #00ffcc;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Autocomplete suggestion box inline with the prompt */
+    .autocomplete-suggestions {
+      background-color: #111;
+      border: 1px solid #00A67D;
+      position: absolute;
+      z-index: 200;
+      top: 100%;
+      left: calc(20px + 10ch); /* Adjust for prompt and padding */
+      max-height: 150px;
+      overflow-y: auto;
+      width: 300px; /* Fixed width for better alignment */
+      color: #00A67D;
+    }
+
+    .autocomplete-suggestion {
+      padding: 5px;
+      cursor: pointer;
+    }
+
+    .autocomplete-suggestion:hover {
+      background-color: #00A67D;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Banner -->
+  <div class="banner" id="banner">
+    Loading your terminal...
+  </div>
+
+  <!-- Scrollable Terminal -->
+  <div id="terminal-container">
+    <div id="terminal">
+      <div>> Welcome to <span class="prompt">Mahdi@iamdevops.ir</span>'s Terminal Portfolio</div>
+      <div>> Type <span class="prompt">help</span> to see available commands.</div>
+    </div>
+  </div>
+
+  <!-- Input Area -->
+  <div id="input-line">
+    <span class="prompt">guest@iamdevops.ir:~$</span>
+    <input id="input" type="text" autofocus autocomplete="off">
+    <!-- Autocomplete Suggestions -->
+    <div id="autocomplete" class="autocomplete-suggestions"></div>
+  </div>
+
+  <script>
+    async function getVisitorInfo() {
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        const ip = ipData.ip;
+        const currentTime = new Date().toLocaleString();
+        document.getElementById("banner").innerHTML = `IP: ${ip} | Date/Time: ${currentTime}`;
+      } catch (error) {
+        console.error("Error fetching IP:", error);
+        document.getElementById("banner").innerHTML = `Unable to fetch IP | Date/Time: ${new Date().toLocaleString()}`;
+      }
+    }
+
+    getVisitorInfo();
+
+    const terminal = document.getElementById("terminal");
+    const input = document.getElementById("input");
+    const autocompleteDiv = document.getElementById("autocomplete");
+
+    const commands = ["help", "whoami", "skills", "projects", "contact", "clear"];
+    const commandDescriptions = {
+      help: "Available commands: <b>whoami</b>, <b>skills</b>, <b>projects</b>, <b>contact</b>, <b>clear</b>",
+      whoami: "I'm Mahdi Alimohammadi, a DevOps/SRE Engineer and System Administrator.",
+      skills: "Skills: CI/CD, Docker, Kubernetes, Linux, HAProxy, Monitoring (Prometheus/Grafana).",
+      projects: "Check out my work on <a href='https://github.com/MahdiAlimohammadi' target='_blank'>GitHub</a>.",
+      contact: "Email me at <a href='mailto:mahdi.alimohammadi1992@gmail.com'>Gmail</a> or connect on <a href='https://linkedin.com/in/mahdialimohammadi' target='_blank'>LinkedIn</a>.",
+      clear: ""
+    };
+
+    function showSuggestions(suggestions) {
+      autocompleteDiv.innerHTML = '';
+      suggestions.forEach(suggestion => {
+        const suggestionDiv = document.createElement('div');
+        suggestionDiv.classList.add('autocomplete-suggestion');
+        suggestionDiv.textContent = suggestion;
+        suggestionDiv.onclick = function() {
+          input.value = suggestion;
+          autocompleteDiv.innerHTML = '';
+        };
+        autocompleteDiv.appendChild(suggestionDiv);
+      });
+    }
+
+    function autocomplete(inputText) {
+      if (!inputText) {
+        autocompleteDiv.innerHTML = '';
+        return;
+      }
+      const matchedCommands = commands.filter(command => command.startsWith(inputText));
+      showSuggestions(matchedCommands);
+    }
+
+    input.addEventListener("input", function() {
+      const inputText = input.value.trim();
+      autocomplete(inputText);
+    });
+
+    input.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        const command = input.value.trim();
+        let response = commandDescriptions[command] || "Command not found. Type 'help' for available commands.";
+
+        if (command === "clear") {
+          terminal.innerHTML = '';
+        } else {
+          terminal.innerHTML += `<div><span>guest@iamdevops.ir:~$ ${command}</span></div><div>${response}</div>`;
+        }
+
+        input.value = "";
+        autocompleteDiv.innerHTML = '';
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+    });
+  </script>
+</body>
+</html>
